@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://diceclue.diceclue.workers.dev/sitemap.xml
