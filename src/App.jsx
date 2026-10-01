@@ -15,7 +15,7 @@ const MONO = "'JetBrains Mono', monospace";
 const SITE_ORIGIN =
   typeof window !== 'undefined' && window.location?.origin
     ? window.location.origin
-    : 'https://diceclue.diceclue.workers.dev';
+    : 'https://diceclue.com';
 
 /* 여러 컴포넌트에 그대로 복사돼 있던 인라인 스타일을 한곳으로 모았다. */
 const monoFont = (size, weight = 400) => `${weight} ${size}px ${MONO}`;
