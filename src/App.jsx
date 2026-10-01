@@ -556,7 +556,42 @@ function Confetti() {
   );
 }
 
-function WinModal({ secretWord, confirmed, rolls, wordsMade, onShare, onClose, copied }) {
+const pad2 = (n) => String(n).padStart(2, '0');
+
+/** ms → "HH:MM:SS" */
+function formatHMS(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  return `${pad2(Math.floor(total / 3600))}:${pad2(Math.floor((total % 3600) / 60))}:${pad2(total % 60)}`;
+}
+
+/**
+ * 다음 퍼즐(다음 UTC 자정)까지 남은 시간. 표시 전용 — 0이 돼도 게임 상태는
+ * 건드리지 않고 새로고침 안내만 띄운다. 기준은 지금 화면의 퍼즐 날짜(seedStr).
+ */
+function NextPuzzleCountdown({ seedStr }) {
+  const target = useMemo(() => Date.parse(`${seedStr}T00:00:00Z`) + 86400000, [seedStr]);
+  const [now, setNow] = useState(() => Date.now());
+  const left = target - now;
+  const done = left <= 0;
+
+  useEffect(() => {
+    if (done) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [done]);
+
+  return (
+    <div
+      role="timer"
+      aria-live="off"
+      style={{ font: monoFont(13, 500), color: INK, margin: '0 0 6px', fontVariantNumeric: 'tabular-nums' }}
+    >
+      {done ? 'New puzzle is ready — refresh' : `Next puzzle in ${formatHMS(left)}`}
+    </div>
+  );
+}
+
+function WinModal({ secretWord, confirmed, rolls, wordsMade, onShare, onClose, copied, seedStr, streak }) {
   return (
     <ModalShell onClose={onClose} style={{ textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
       <Confetti />
@@ -571,6 +606,14 @@ function WinModal({ secretWord, confirmed, rolls, wordsMade, onShare, onClose, c
         <br />
         {confirmedCount(confirmed)}/{confirmed.length} confirmed by play · {rolls} rolls · {wordsMade} words made
       </p>
+      <div style={{ borderTop: '1px solid rgba(27,26,22,.14)', padding: '14px 0 0', margin: '0 0 18px' }}>
+        <NextPuzzleCountdown seedStr={seedStr} />
+        {streak >= 1 && (
+          <div style={{ font: monoFont(12), color: 'rgba(27,26,22,.72)', lineHeight: 1.5 }}>
+            🔥 {streak}-day streak — come back tomorrow
+          </div>
+        )}
+      </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
         <button type="button" onClick={onShare} style={solidBtn(copied ? ACCENT : INK, copied ? ON_ACCENT : CREAM)}>
           {copied ? 'copied — paste it anywhere' : 'share'}
@@ -806,17 +849,21 @@ export default function DiceClueGame() {
     setGuess('');
   }, [guess, secretWord, rolls, seedStr]);
 
+  // 오늘 풀었을 때만 의미 있는 연속 기록 (표시 전용)
+  const streak = solved && stats.lastSolvedDay === seedStr ? stats.currentStreak : 0;
+
   const shareText = useCallback(() => {
     // 풀고 나서 = 결과 자랑 / 아직 못 풀었을 때 = "이 여섯 글자, 단어 보여?" 도전장
     if (solved) {
-      return `DiceClue #${puzzleNo}\n${squaresOf(confirmed)}\nSolved in ${rolls} rolls.\n${SITE_ORIGIN}`;
+      const streakLine = streak >= 1 ? `🔥 ${streak}-day streak\n` : '';
+      return `DiceClue #${puzzleNo}\n${squaresOf(confirmed)}\nSolved in ${rolls} rolls.\n${streakLine}${SITE_ORIGIN}`;
     }
     // 3+3 두 줄. 앞뒤를 주사위로 감싸 양 줄을 같은 틀로 맞춘다 (비례폰트라
     // 글자별 폭은 달라도, 같은 위치에서 시작·끝나 격자처럼 읽힌다).
     const row1 = letters.slice(0, 3).join(' ');
     const row2 = letters.slice(3).join(' ');
     return `DiceClue #${puzzleNo}\n🎲 ${row1} 🎲\n🎲 ${row2} 🎲\nStuck here — can you spot a word?\n${SITE_ORIGIN}`;
-  }, [solved, puzzleNo, confirmed, rolls, letters]);
+  }, [solved, puzzleNo, confirmed, rolls, letters, streak]);
 
   // 텍스트로만 공유한다 — 주소가 눌리는 형태가 유입에 제일 낫고, 이미지 공유는
   // 브라우저별 지원이 들쭉날쭉한 데다 이미지 속 주소는 클릭이 안 된다.
@@ -1222,6 +1269,8 @@ export default function DiceClueGame() {
           onShare={share}
           onClose={() => setShowWin(false)}
           copied={copied}
+          seedStr={seedStr}
+          streak={streak}
         />
       )}
       {showHow && <HowToModal onClose={dismissHowTo} />}
