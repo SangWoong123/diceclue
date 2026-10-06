@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Share2, BarChart3, HelpCircle } from 'lucide-react';
+import { trackStart, trackFinish, trackShare } from './events.js';
 
 const ACCENT = 'oklch(0.60 0.15 140)';
 const ACCENT_HOVER = 'oklch(0.68 0.15 140)';
@@ -835,7 +836,9 @@ export default function DiceClueGame() {
   const submitGuess = useCallback(() => {
     const g = guess.trim().toUpperCase();
     if (!g) return;
+    trackStart(puzzleNo);
     if (g === secretWord) {
+      trackFinish(puzzleNo, 'win');
       setSolved(true);
       setShowWin(true);
       setSel([]);
@@ -847,7 +850,7 @@ export default function DiceClueGame() {
       setGuessMsg(`${g} isn't the hidden word — that cost you a roll`);
     }
     setGuess('');
-  }, [guess, secretWord, rolls, seedStr]);
+  }, [guess, secretWord, rolls, seedStr, puzzleNo]);
 
   // 오늘 풀었을 때만 의미 있는 연속 기록 (표시 전용)
   const streak = solved && stats.lastSolvedDay === seedStr ? stats.currentStreak : 0;
@@ -868,6 +871,7 @@ export default function DiceClueGame() {
   // 텍스트로만 공유한다 — 주소가 눌리는 형태가 유입에 제일 낫고, 이미지 공유는
   // 브라우저별 지원이 들쭉날쭉한 데다 이미지 속 주소는 클릭이 안 된다.
   const share = useCallback(async () => {
+    trackShare(puzzleNo);
     const flash = () => {
       setCopied(true);
       const t = setTimeout(() => setCopied(false), 1800);
@@ -893,7 +897,7 @@ export default function DiceClueGame() {
         setStatus('sharing failed');
       }
     }
-  }, [shareText]);
+  }, [shareText, puzzleNo]);
 
   return (
     <div
@@ -1073,6 +1077,7 @@ export default function DiceClueGame() {
                     isRolling={rolling.includes(i)}
                     onClick={() => {
                       if (rolling.length) return;
+                      if (!solved) trackStart(puzzleNo);
                       setStatus('');
                       setSel((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]));
                     }}

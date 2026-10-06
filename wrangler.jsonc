@@ -16,5 +16,11 @@
     "not_found_handling": "single-page-application",
     // Run the Worker before asset matching so the workers.dev 301 applies to every path.
     "run_worker_first": true
-  }
+  },
+  // Daily puzzle event counters (POST /api/e, GET /api/stats). SQLite-backed
+  // Durable Object = available on the Workers Free plan, created on deploy.
+  "durable_objects": {
+    "bindings": [{ "name": "EVENT_COUNTER", "class_name": "EventCounter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EventCounter"] }]
 }
