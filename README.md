@@ -22,7 +22,7 @@ Cloudflare Workers 정적 자산으로 배포되고, GitHub `main` 에 push 하�
 | `dc_progress_<UTC날짜>` | 오늘 판의 진행 상황 (지난 날짜 키는 자동 정리) |
 | `dc_seen_howto` | 첫 방문 안내를 봤는지 |
 | `dc_ev_<퍼즐번호>` | 이 퍼즐의 `start`/`finish` 이벤트를 이미 보냈는지 (`s`/`f`) |
-| `dc_nolog` | `1` 이면 이 브라우저는 이벤트와 Web Analytics 비콘을 보내지 않음 |
+| `dc_nolog` | `1` 이면 이 브라우저는 퍼즐 이벤트를 보내지 않음 (Web Analytics는 Cloudflare 자동 설정이라 코드로 못 끔) |
 
 시크릿 모드 등에서는 `localStorage` 접근 자체가 예외를 던질 수 있어 모든 읽기/쓰기가 감싸져 있다. 저장이 막혀도 게임은 그대로 돌아가고 기록만 남지 않는다. `loadStats()` 는 값이 깨졌거나 예전 버전이 일부 필드만 남겼더라도 항상 온전한 객체를 돌려준다.
 
