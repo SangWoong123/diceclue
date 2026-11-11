@@ -214,6 +214,9 @@ const XMAS_FIRST_DAY = Math.round((Date.UTC(2026, 11, 1) - EPOCH) / 86400000);
 const XMAS_LAST_DAY = Math.round((Date.UTC(2026, 11, 31) - EPOCH) / 86400000);
 const AUTUMN_FIRST_DAY = Math.round((Date.UTC(2026, 10, 12) - EPOCH) / 86400000);
 const AUTUMN_LAST_DAY = XMAS_FIRST_DAY - 1;
+// 가을 오프닝: 11/11(day 314)도 가을 단어로 — 11/12 부터는 위 일정(이틀에 한 번)이 이어진다.
+const AUTUMN_OPENER_DAY = AUTUMN_FIRST_DAY - 1;
+const AUTUMN_OPENER_WORD = 'SPICE';
 const AUTUMN_WORDS = ['ACORN', 'MAPLE', 'APPLES', 'PECAN', 'GOURD', 'SCARF', 'AUTUMN', 'TURKEY', 'LEAVES', 'CHILLY'];
 const CHRISTMAS_WORDS = [
   'FROSTY', 'COCOA', 'MITTEN', 'CIDER', 'COOKIE', 'GINGER', 'ICICLE', 'ELVES',
@@ -232,6 +235,7 @@ const SECRET_ORDER = seededShuffle(SECRET_WORDS_STR.split(','), 0x9e3779b1);
 function getDailySecretWord(dayIndex) {
   const xmas = dayIndex - XMAS_FIRST_DAY;
   if (dayIndex <= XMAS_LAST_DAY && xmas >= 0 && xmas % 2 === 0) return CHRISTMAS_WORDS[xmas / 2];
+  if (dayIndex === AUTUMN_OPENER_DAY) return AUTUMN_OPENER_WORD;
   const fall = dayIndex - AUTUMN_FIRST_DAY;
   if (dayIndex <= AUTUMN_LAST_DAY && fall >= 0 && fall % 2 === 0) return AUTUMN_WORDS[fall / 2];
   const n = SECRET_ORDER.length;
@@ -1097,7 +1101,11 @@ export default function DiceClueGame() {
 
   // restore today's progress, and show how-to on first ever visit
   useEffect(() => {
-    const saved = loadProgress(seedStr);
+    const stored = loadProgress(seedStr);
+    // 그날 정답이 바뀐 경우(가을 오프닝으로 11/11 단어를 교체)엔 예전 진행을 버린다.
+    // secret 이 적혀 있으면 그걸로, 없던 시절 저장분은 교체된 날에 한해 무효 처리.
+    const stale = stored && (stored.secret ? stored.secret !== secretWord : puzzleNo === AUTUMN_OPENER_DAY);
+    const saved = stale ? null : stored;
     if (saved) {
       if (Array.isArray(saved.letters) && saved.letters.length === DIE_COUNT) setLetters(saved.letters);
       if (Array.isArray(saved.log)) setLog(saved.log);
@@ -1112,13 +1120,13 @@ export default function DiceClueGame() {
     }
     pruneStorage(seedStr);
     setRestored(true);
-  }, [seedStr]);
+  }, [seedStr, secretWord, puzzleNo]);
 
   // autosave after every change (only once the restore pass has run)
   useEffect(() => {
     if (!restored) return;
-    saveProgress(seedStr, { letters, log, foundOrder, rolls, solved });
-  }, [restored, seedStr, letters, log, foundOrder, rolls, solved]);
+    saveProgress(seedStr, { letters, log, foundOrder, rolls, solved, secret: secretWord });
+  }, [restored, seedStr, secretWord, letters, log, foundOrder, rolls, solved]);
 
   const dismissHowTo = useCallback(() => {
     setShowHow(false);
